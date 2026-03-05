@@ -95,4 +95,3 @@ void endGame() {
   Serial.print("Final Score: ");
   Serial.println(score);
 }
-Just a test
