@@ -1,5 +1,5 @@
-const int ledPins[9] = {2}; // LED Pins
-const int buttonPins[9] = {13}; //Button pins
+const int ledPins[9] = {2, 3, 4, 5, 6, 7, 8, 9, 10}; // LED Pins
+const int buttonPins[9] = {11, 12, 13, A0, A1, A2, A3, A4, A5}; //Button pins
 const unsigned long debounceDelay = 50; // Debounce time (ms)
 const unsigned long gameDuration = 90000; // 90 seconds in ms
 
