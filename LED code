@@ -1,0 +1,36 @@
+const int moleLEDs[2] = {2, 3};
+const int hitLEDs[2]  = {4, 5};
+
+int currentMole = -1;
+
+void setup() {
+  for (int i = 0; i < 2; i++) {
+    pinMode(moleLEDs[i], OUTPUT);
+    pinMode(hitLEDs[i], OUTPUT);
+    digitalWrite(moleLEDs[i], LOW);
+    digitalWrite(hitLEDs[i], LOW);
+  }
+
+  randomSeed(analogRead(A0));
+  pickNewMole();
+}
+
+void loop() {
+  // Mole stays up for 2 seconds then moves
+  delay(2000);
+  pickNewMole();
+}
+
+void pickNewMole() {
+  if (currentMole != -1) {
+    digitalWrite(moleLEDs[currentMole], LOW);
+  }
+
+  int newMole;
+  do {
+    newMole = random(0, 2);
+  } while (newMole == currentMole);
+
+  currentMole = newMole;
+  digitalWrite(moleLEDs[currentMole], HIGH);
+}
