@@ -1,0 +1,80 @@
+// --- RED LEDs (mole present) ---
+const int moleLEDs[2] = {2, 3};
+
+// --- GREEN LEDs (hit confirmed) ---
+const int hitLEDs[2]  = {4, 5};
+
+// --- BUTTONS (one per hole) ---
+const int buttons[2]  = {6, 7};
+
+const unsigned long moleTimeout   = 2000; // mole stays up for 2 seconds
+const unsigned long hitFlashTime  = 300;  // hit LED flash duration
+const unsigned long debounceDelay = 50;
+
+int currentMole = -1;
+bool moleActive = false;
+unsigned long moleStartTime = 0;
+unsigned long lastDebounceTime[2] = {0};
+bool lastButtonState[2] = {false};
+
+void setup() {
+  for (int i = 0; i < 2; i++) {
+    pinMode(moleLEDs[i], OUTPUT);  // red
+    pinMode(hitLEDs[i], OUTPUT);   // green
+    pinMode(buttons[i], INPUT_PULLUP);
+    digitalWrite(moleLEDs[i], LOW);
+    digitalWrite(hitLEDs[i], LOW);
+  }
+
+  randomSeed(analogRead(A0));
+  pickNewMole();
+}
+
+void loop() {
+  // Mole timed out with no hit — turn off red LED and pick a new mole
+  if (moleActive && (millis() - moleStartTime >= moleTimeout)) {
+    digitalWrite(moleLEDs[currentMole], LOW); // red off
+    moleActive = false;
+    delay(500);
+    pickNewMole();
+  }
+
+  // Check both buttons
+  for (int i = 0; i < 2; i++) {
+    bool reading = !digitalRead(buttons[i]); // active LOW
+
+    if (reading != lastButtonState[i]) {
+      lastDebounceTime[i] = millis();
+    }
+
+    if ((millis() - lastDebounceTime[i]) > debounceDelay) {
+      if (reading && !lastButtonState[i]) { // fresh press
+        if (moleActive && i == currentMole) {
+          // Correct hit — red off, green flashes
+          digitalWrite(moleLEDs[currentMole], LOW); // red off immediately
+          moleActive = false;
+          digitalWrite(hitLEDs[i], HIGH);           // green on
+          delay(hitFlashTime);
+          digitalWrite(hitLEDs[i], LOW);            // green off
+          delay(500);
+          pickNewMole();
+        }
+        // Wrong button or mole not active — do nothing for now
+      }
+    }
+
+    lastButtonState[i] = reading;
+  }
+}
+
+void pickNewMole() {
+  int newMole;
+  do {
+    newMole = random(0, 2);
+  } while (newMole == currentMole);
+
+  currentMole = newMole;
+  digitalWrite(moleLEDs[currentMole], HIGH); // red on — mole is up
+  moleStartTime = millis();
+  moleActive = true;
+}
