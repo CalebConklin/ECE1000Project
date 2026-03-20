@@ -1,0 +1,49 @@
+#include <LiquidCrystal.h>
+
+// --- LCD pins (RS, EN, D4, D5, D6, D7) ---
+LiquidCrystal lcd(8, 9, 10, 11, 12, 13);
+
+void setup() {
+  Serial.begin(9600); // listens to game R4 via RX pin
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("Whack a Mole!");
+  lcd.setCursor(0, 1);
+  lcd.print("Score: 0");
+}
+
+void loop() {
+  if (Serial.available()) {
+    String msg = Serial.readStringUntil('\n');
+    msg.trim();
+
+    if (msg.startsWith("SCORE:")) {
+      // Update score on LCD
+      int score = msg.substring(6).toInt();
+      lcd.setCursor(0, 0);
+      lcd.print("Whack a Mole!   ");
+      lcd.setCursor(0, 1);
+      lcd.print("Score: ");
+      lcd.print(score);
+      lcd.print("   ");
+
+    } else if (msg.startsWith("GAMEOVER:")) {
+      // Show game over screen
+      int score = msg.substring(9).toInt();
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Game Over!");
+      lcd.setCursor(0, 1);
+      lcd.print("Final: ");
+      lcd.print(score);
+
+    } else if (msg == "START") {
+      // Show start screen
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Whack a Mole!");
+      lcd.setCursor(0, 1);
+      lcd.print("Score: 0");
+    }
+  }
+}
