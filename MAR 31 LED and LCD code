@@ -1,0 +1,138 @@
+#include <LiquidCrystal.h>
+
+// --- LCD pins (RS, EN, D4, D5, D6, D7) ---
+LiquidCrystal lcd(A1, A2, A3, A4, A5, A0);
+
+// --- RED LEDs (moles) ---
+const int moleLEDs[6] = {2, 3, 4, 5, 6, 7};
+
+// --- GREEN LED (hit notifier) ---
+const int hitLED = 8;
+
+// --- BUTTON ---
+const int button = 9;
+
+const unsigned long moleOnTime    = 1000;
+const unsigned long moleGapTime   = 500;
+const unsigned long hitFlashTime  = 300;
+const unsigned long debounceDelay = 50;
+
+// --- Game state ---
+const int gameDuration = 30;
+int timeRemaining = gameDuration;
+unsigned long lastSecondTime = 0;
+bool gameRunning = false;
+
+int  currentMole   = -1;
+bool moleActive    = false;
+unsigned long moleStartTime = 0;
+int score = 0;
+
+unsigned long lastDebounceTime = 0;
+bool lastRawState  = false;
+bool stableState   = false;
+
+void pickNewMole();
+
+void setup() {
+  Serial.begin(9600);
+
+  for (int i = 0; i < 6; i++) {
+    pinMode(moleLEDs[i], OUTPUT);
+    digitalWrite(moleLEDs[i], LOW);
+  }
+
+  pinMode(hitLED, OUTPUT);
+  digitalWrite(hitLED, LOW);
+  pinMode(button, INPUT_PULLUP);
+
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("Time: 30s");
+  lcd.setCursor(0, 1);
+  lcd.print("Score: 0");
+
+  timeRemaining = gameDuration;
+  lastSecondTime = millis();
+  gameRunning = true;
+  pickNewMole();
+}
+
+void loop() {
+  // Countdown timer
+  if (gameRunning && (millis() - lastSecondTime >= 1000)) {
+    lastSecondTime = millis();
+    timeRemaining--;
+    lcd.setCursor(0, 0);
+    lcd.print("Time: ");
+    lcd.print(timeRemaining);
+    lcd.print("s   ");
+
+    if (timeRemaining <= 0) {
+      gameRunning = false;
+      digitalWrite(moleLEDs[currentMole], LOW);
+      moleActive = false;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Game Over!");
+      lcd.setCursor(0, 1);
+      lcd.print("Final: ");
+      lcd.print(score);
+    }
+  }
+
+  if (!gameRunning) return;
+
+  // Mole timed out — turn off and pause before next one
+  if (moleActive && (millis() - moleStartTime >= moleOnTime)) {
+    digitalWrite(moleLEDs[currentMole], LOW);
+    moleActive = false;
+    delay(moleGapTime);
+    pickNewMole();
+  }
+
+  // Check button
+  bool reading = !digitalRead(button);
+
+  if (reading != lastRawState) {
+    lastDebounceTime = millis();
+  }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading && !stableState) {
+      if (moleActive) {
+        score++;
+        digitalWrite(moleLEDs[currentMole], LOW);
+        moleActive = false;
+
+        digitalWrite(hitLED, HIGH);
+        delay(hitFlashTime);
+        digitalWrite(hitLED, LOW);
+
+        lcd.setCursor(0, 1);
+        lcd.print("Score: ");
+        lcd.print(score);
+        lcd.print("   ");
+
+        Serial.println("Hit! Score: " + String(score));
+        delay(moleGapTime);
+        pickNewMole();
+      }
+    }
+    stableState = reading;
+  }
+
+  lastRawState = reading;
+}
+
+void pickNewMole() {
+  int newMole;
+  do {
+    newMole = random(0, 6);
+  } while (newMole == currentMole);
+
+  currentMole = newMole;
+  digitalWrite(moleLEDs[currentMole], HIGH);
+  moleStartTime = millis();
+  moleActive = true;
+}
